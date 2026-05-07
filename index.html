@@ -441,16 +441,6 @@
 <!-- ══ MAIN ══ -->
 <main>
 
-  <!-- Photo strip -->
-  <div class="photo-strip">
-    <div class="photo-card"><div class="photo-placeholder">🚴</div><div class="photo-caption">En pleine ascension</div></div>
-    <div class="photo-card"><div class="photo-placeholder">🏔️</div><div class="photo-caption">Haut des cols</div></div>
-    <div class="photo-card"><div class="photo-placeholder">🥇</div><div class="photo-caption">Ligne d'arrivée</div></div>
-    <div class="photo-card"><div class="photo-placeholder">⚡</div><div class="photo-caption">Sprint final</div></div>
-    <div class="photo-card"><div class="photo-placeholder">🏆</div><div class="photo-caption">Podium</div></div>
-    <div class="photo-card"><div class="photo-placeholder">💪</div><div class="photo-caption">Entraînement</div></div>
-  </div>
-
   <!-- Random fact -->
   <div class="random-banner">
     <div class="random-banner-label">⚡ Fact du moment</div>
@@ -468,7 +458,7 @@
       <div class="sort-group">
         <button class="sort-btn active" id="sortTop"  onclick="setSort('top')">Populaires</button>
         <button class="sort-btn"        id="sortNew"  onclick="setSort('new')">Récents</button>
-        <button class="sort-btn"        id="sortRand" onclick="setSort('rand')">Aléatoire</button>
+        <button class="sort-btn"        id="sortRand" onclick="showOneRandom()">🎲 Aléatoire</button>
       </div>
       <div class="total-badge">Total : <strong id="totalCount">—</strong> facts</div>
     </div>
@@ -495,23 +485,9 @@
           <textarea id="factInput" placeholder="Ex : Quand Paul Seixas mouline en plateau, les satellites changent d'orbite par effet d'aspiration…" maxlength="280" oninput="updateCharCount()"></textarea>
           <div class="char-count" id="charCount">0 / 280</div>
         </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>Ton pseudo (optionnel)</label>
-            <input type="text" id="authorInput" placeholder="Cycliste anonyme" maxlength="30"/>
-          </div>
-          <div class="form-group">
-            <label>Catégorie</label>
-            <select id="categoryInput">
-              <option value="Montagne">⛰️ Montagne</option>
-              <option value="Sprint">⚡ Sprint</option>
-              <option value="Endurance">🔥 Endurance</option>
-              <option value="Technique">🔧 Technique</option>
-              <option value="Nutrition">🍌 Nutrition</option>
-              <option value="Mental">🧠 Mental</option>
-              <option value="Mythologie">🏆 Mythologie</option>
-            </select>
-          </div>
+        <div class="form-group">
+          <label>Ton pseudo (optionnel)</label>
+          <input type="text" id="authorInput" placeholder="Cycliste anonyme" maxlength="30"/>
         </div>
         <button class="submit-btn" id="submitBtn" onclick="submitFact()">🚴 PUBLIER LE FACT</button>
         <div class="moderation-note">📋 Les facts sont visibles immédiatement par tous les visiteurs.</div>
@@ -541,8 +517,8 @@
    Remplace les deux valeurs ci-dessous par celles
    de ton projet Supabase (voir README.md)
 ───────────────────────────────────────────── */
-const SUPABASE_URL  = 'https://wpbfnohaklqpjktiibzj.supabase.co/';
-const SUPABASE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmZub2hha2xxcGprdGlpYnpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNzc1NDQsImV4cCI6MjA5MzY1MzU0NH0.1AxBYmPjfXZk5CFYxZDuO89tIjk6sk4fwNH7DBZM_MU';
+const SUPABASE_URL  = 'REMPLACE_PAR_TON_URL_SUPABASE';
+const SUPABASE_KEY  = 'REMPLACE_PAR_TA_CLE_ANON_SUPABASE';
 /* ─────────────────────────────────────────────*/
 
 // Détection config manquante
@@ -661,22 +637,57 @@ function applySort() {
   const q = (document.getElementById('searchInput')?.value || '').toLowerCase().trim();
   let list = q ? allFacts.filter(f =>
     f.text.toLowerCase().includes(q) ||
-    (f.category||'').toLowerCase().includes(q) ||
     (f.author||'').toLowerCase().includes(q)
   ) : [...allFacts];
 
   if (sortMode === 'top')  list.sort((a,b) => (b.votes||0) - (a.votes||0));
-  else if (sortMode === 'new') list.sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
-  else list.sort(() => Math.random() - 0.5);
+  else list.sort((a,b) => new Date(b.created_at||0) - new Date(a.created_at||0));
 
   displayedFacts = list;
 }
 
+// Affiche UN seul fact aléatoire, différent du précédent à chaque clic
+let lastRandomId = null;
+function showOneRandom() {
+  if (!allFacts.length) return;
+  // Exclure le dernier affiché pour éviter la répétition
+  const pool = allFacts.length > 1 ? allFacts.filter(f => f.id !== lastRandomId) : allFacts;
+  const f = pool[Math.floor(Math.random() * pool.length)];
+  lastRandomId = f.id;
+
+  const vote  = userVotes[f.id] || null;
+  const isUser = f.author && f.author !== 'Admin';
+  const votes  = f.votes || 0;
+
+  document.getElementById('totalCount').textContent = '1';
+  document.getElementById('factsGrid').innerHTML = `
+    <div style="text-align:center;padding:.5rem 0 1rem;font-family:'Barlow Condensed',sans-serif;font-size:.78rem;letter-spacing:.15em;text-transform:uppercase;color:var(--muted)">
+      Fact aléatoire — <span style="color:var(--yellow);cursor:pointer" onclick="showOneRandom()">↺ En tirer un autre</span>
+      &nbsp;·&nbsp; <span style="color:var(--muted);cursor:pointer" onclick="setSort('top')">Voir tous les facts</span>
+    </div>
+    <div class="fact-card${isUser?' user-fact':''}" style="border-color:rgba(255,209,0,.45);box-shadow:0 0 40px rgba(255,209,0,.08)">
+      <div class="fact-number">#${f.id}</div>
+      <div class="fact-body">
+        <div class="fact-text">${escHtml(f.text)}</div>
+        <div class="fact-meta">
+          ${isUser ? `<span class="fact-tag user-tag">👤 ${escHtml(f.author)}</span>` : ''}
+          <span class="fact-author" style="color:var(--muted);font-size:.72rem">▲ ${votes} vote${votes!==1?'s':''}</span>
+        </div>
+      </div>
+      <div class="vote-panel">
+        <button class="vote-btn${vote==='up'?' voted-up':''}" onclick="castVoteDb(${f.id},'up')" title="Excellent fact">👍</button>
+        <div class="vote-total">${votes}</div>
+        <button class="vote-btn${vote==='down'?' voted-down':''}" onclick="castVoteDb(${f.id},'down')" title="Pas convaincu">👎</button>
+      </div>
+    </div>`;
+}
+
 function setSort(mode) {
   sortMode = mode;
-  ['top','new','rand'].forEach(m =>
+  ['top','new'].forEach(m =>
     document.getElementById('sort'+m.charAt(0).toUpperCase()+m.slice(1))?.classList.toggle('active', m === mode)
   );
+  document.getElementById('sortRand')?.classList.remove('active');
   applySort(); renderFacts();
 }
 
@@ -705,7 +716,6 @@ function renderFacts() {
         <div class="fact-body">
           <div class="fact-text">${escHtml(f.text)}</div>
           <div class="fact-meta">
-            <span class="fact-tag">${escHtml(f.category||'')}</span>
             ${isUser ? `<span class="fact-tag user-tag">👤 ${escHtml(f.author)}</span>` : ''}
             <span class="fact-author" style="color:var(--muted);font-size:.72rem">▲ ${votes} vote${votes!==1?'s':''}</span>
           </div>
@@ -740,14 +750,13 @@ async function submitFact() {
   if (!text)         { showToast('✍️  Écris un fact d\'abord !', 'info'); return; }
   if (text.length<20){ showToast('Trop court — Paul mérite mieux !', 'info'); return; }
 
-  const author   = document.getElementById('authorInput').value.trim() || 'Cycliste anonyme';
-  const category = document.getElementById('categoryInput').value;
-  const btn      = document.getElementById('submitBtn');
-  btn.disabled   = true;
-  btn.textContent= '⏳ Publication…';
+  const author = document.getElementById('authorInput').value.trim() || 'Cycliste anonyme';
+  const btn    = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Publication…';
 
   try {
-    await insertFact({ text, author, category, votes: 0 });
+    await insertFact({ text, author, votes: 0 });
     await fetchFacts();
     document.getElementById('factInput').value  = '';
     document.getElementById('authorInput').value = '';
