@@ -287,8 +287,55 @@
     .vote-total { font-family:'Bebas Neue',sans-serif; font-size:1rem; color:var(--text); }
 
     /* ════════════════════════════════════════════
-       LOADING SPINNER
+       SHARE ACTIONS
     ════════════════════════════════════════════ */
+    .fact-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 0.6rem;
+      flex-wrap: wrap;
+    }
+    .action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      color: var(--muted);
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 9px;
+      cursor: pointer;
+      transition: all 0.18s;
+      text-decoration: none;
+    }
+    .action-btn:hover { border-color: var(--yellow); color: var(--yellow); }
+    .action-btn.twitter:hover { border-color: #1d9bf0; color: #1d9bf0; }
+    .action-btn svg { flex-shrink: 0; }
+    .views-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-family: 'Barlow Condensed', sans-serif;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-left: auto;
+    }
+    /* Fact mis en avant via URL ?fact=X */
+    .fact-card.highlighted {
+      border-color: var(--yellow) !important;
+      box-shadow: 0 0 0 2px rgba(255,209,0,0.25), 0 8px 40px rgba(255,209,0,0.1) !important;
+      animation: pulse-highlight 1.5s ease 0.3s;
+    }
+    @keyframes pulse-highlight {
+      0%,100% { box-shadow: 0 0 0 2px rgba(255,209,0,0.25), 0 8px 40px rgba(255,209,0,0.1); }
+      50%      { box-shadow: 0 0 0 4px rgba(255,209,0,0.5), 0 8px 60px rgba(255,209,0,0.2); }
+    }
     .loading-state {
       text-align:center; padding:3rem;
       font-family:'Barlow Condensed',sans-serif; font-size:1rem;
@@ -656,7 +703,21 @@ async function insertFact(fact) {
   return data;
 }
 
-async function castVoteDb(factId, direction) {
+async function incrementViews(factId) {
+  if (!IS_CONFIGURED) return;
+  // Anti-spam : on ne compte qu'une vue par fact par session
+  const seen = JSON.parse(sessionStorage.getItem('psViewed') || '[]');
+  if (seen.includes(factId)) return;
+  seen.push(factId);
+  sessionStorage.setItem('psViewed', JSON.stringify(seen));
+  const f = allFacts.find(x => x.id === factId);
+  if (!f) return;
+  const newViews = (f.views || 0) + 1;
+  await db.from('facts').update({ views: newViews }).eq('id', factId);
+  f.views = newViews;
+}
+
+
   if (!IS_CONFIGURED) {
     // Mode local
     const f = allFacts.find(x => x.id === factId);
@@ -704,14 +765,9 @@ function applySort() {
 let lastRandomId = null;
 function showOneRandom() {
   if (!allFacts.length) return;
-  // Exclure le dernier affiché pour éviter la répétition
   const pool = allFacts.length > 1 ? allFacts.filter(f => f.id !== lastRandomId) : allFacts;
   const f = pool[Math.floor(Math.random() * pool.length)];
   lastRandomId = f.id;
-
-  const vote  = userVotes[f.id] || null;
-  const isUser = f.author && f.author !== 'Admin';
-  const votes  = f.votes || 0;
 
   document.getElementById('totalCount').textContent = '1';
   document.getElementById('factsGrid').innerHTML = `
@@ -719,21 +775,7 @@ function showOneRandom() {
       Fact aléatoire — <span style="color:var(--yellow);cursor:pointer" onclick="showOneRandom()">↺ En tirer un autre</span>
       &nbsp;·&nbsp; <span style="color:var(--muted);cursor:pointer" onclick="setSort('top')">Voir tous les facts</span>
     </div>
-    <div class="fact-card${isUser?' user-fact':''}" style="border-color:rgba(255,209,0,.45);box-shadow:0 0 40px rgba(255,209,0,.08)">
-      <div class="fact-number">#${f.id}</div>
-      <div class="fact-body">
-        <div class="fact-text">${escHtml(f.text)}</div>
-        <div class="fact-meta">
-          ${isUser ? `<span class="fact-tag user-tag">👤 ${escHtml(f.author)}</span>` : ''}
-          <span class="fact-author" style="color:var(--muted);font-size:.72rem">▲ ${votes} vote${votes!==1?'s':''}</span>
-        </div>
-      </div>
-      <div class="vote-panel">
-        <button class="vote-btn${vote==='up'?' voted-up':''}" onclick="castVoteDb(${f.id},'up')" title="Excellent fact">👍</button>
-        <div class="vote-total">${votes}</div>
-        <button class="vote-btn${vote==='down'?' voted-down':''}" onclick="castVoteDb(${f.id},'down')" title="Pas convaincu">👎</button>
-      </div>
-    </div>`;
+    ${factCardHtml(f, 0, true)}`;
 }
 
 function setSort(mode) {
@@ -752,6 +794,56 @@ function filterFacts() { applySort(); renderFacts(); }
 // ════════════════════════════════════════════
 function updateUI() { renderFacts(); updateHeaderStats(); }
 
+function fmtViews(n) {
+  if (!n) return '0';
+  return n >= 1000 ? (n/1000).toFixed(1).replace('.0','') + 'k' : String(n);
+}
+
+function factCardHtml(f, delay=0, highlighted=false) {
+  const vote   = userVotes[f.id] || null;
+  const isUser = f.author && f.author !== 'Admin';
+  const votes  = f.votes || 0;
+  const views  = f.views || 0;
+  const url    = `${location.origin}${location.pathname}?fact=${f.id}`;
+  const tweet  = encodeURIComponent(`#${f.id} — ${f.text}\n\n👉 ${url}`);
+  return `
+    <div class="fact-card${isUser?' user-fact':''}${highlighted?' highlighted':''}" style="animation-delay:${delay}ms" id="fact-${f.id}">
+      <div class="fact-number">#${f.id}</div>
+      <div class="fact-body">
+        <div class="fact-text">${escHtml(f.text)}</div>
+        <div class="fact-meta">
+          ${isUser ? `<span class="fact-tag user-tag">👤 ${escHtml(f.author)}</span>` : ''}
+          <span class="fact-author" style="color:var(--muted);font-size:.72rem">▲ ${votes} vote${votes!==1?'s':''}</span>
+        </div>
+        <div class="fact-actions">
+          <button class="action-btn" onclick="copyFactLink(${f.id},'${escHtml(url)}')" title="Copier le lien">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            Copier le lien
+          </button>
+          <a class="action-btn twitter" href="https://x.com/intent/tweet?text=${tweet}" target="_blank" rel="noopener" title="Partager sur X">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+            </svg>
+            Partager
+          </a>
+          <span class="views-badge">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+            ${fmtViews(views)} vue${views!==1?'s':''}
+          </span>
+        </div>
+      </div>
+      <div class="vote-panel">
+        <button class="vote-btn${vote==='up'?' voted-up':''}" onclick="castVoteDb(${f.id},'up')" title="Excellent fact">👍</button>
+        <div class="vote-total">${votes}</div>
+        <button class="vote-btn${vote==='down'?' voted-down':''}" onclick="castVoteDb(${f.id},'down')" title="Pas convaincu">👎</button>
+      </div>
+    </div>`;
+}
+
 function renderFacts() {
   document.getElementById('totalCount').textContent = displayedFacts.length;
   const grid = document.getElementById('factsGrid');
@@ -759,28 +851,10 @@ function renderFacts() {
     grid.innerHTML = '<div class="empty-state">Aucun fact trouvé… Paul Seixas est peut-être trop rapide pour les mots. 🚴</div>';
     return;
   }
-  grid.innerHTML = displayedFacts.map((f, i) => {
-    const vote = userVotes[f.id] || null;
-    const isUser = f.author && f.author !== 'Admin';
-    const delay = Math.min(i * 25, 400);
-    const votes = f.votes || 0;
-    return `
-      <div class="fact-card${isUser?' user-fact':''}" style="animation-delay:${delay}ms">
-        <div class="fact-number">#${f.id}</div>
-        <div class="fact-body">
-          <div class="fact-text">${escHtml(f.text)}</div>
-          <div class="fact-meta">
-            ${isUser ? `<span class="fact-tag user-tag">👤 ${escHtml(f.author)}</span>` : ''}
-            <span class="fact-author" style="color:var(--muted);font-size:.72rem">▲ ${votes} vote${votes!==1?'s':''}</span>
-          </div>
-        </div>
-        <div class="vote-panel">
-          <button class="vote-btn${vote==='up'?' voted-up':''}" onclick="castVoteDb(${f.id},'up')" title="Excellent fact">👍</button>
-          <div class="vote-total">${votes}</div>
-          <button class="vote-btn${vote==='down'?' voted-down':''}" onclick="castVoteDb(${f.id},'down')" title="Pas convaincu">👎</button>
-        </div>
-      </div>`;
-  }).join('');
+  const targetId = getUrlFactId();
+  grid.innerHTML = displayedFacts.map((f, i) =>
+    factCardHtml(f, Math.min(i * 25, 400), f.id === targetId)
+  ).join('');
 }
 
 function updateHeaderStats() {
@@ -829,7 +903,40 @@ async function submitFact() {
 // ════════════════════════════════════════════
 //  UTILS
 // ════════════════════════════════════════════
-function escHtml(s='') {
+function copyFactLink(id, url) {
+  navigator.clipboard.writeText(url).then(() => {
+    showToast('🔗 Lien copié !', 'success');
+  }).catch(() => {
+    // Fallback pour navigateurs sans clipboard API
+    const el = document.createElement('textarea');
+    el.value = url;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showToast('🔗 Lien copié !', 'success');
+  });
+}
+
+function getUrlFactId() {
+  const p = new URLSearchParams(location.search);
+  const v = p.get('fact');
+  return v ? parseInt(v) : null;
+}
+
+async function handleUrlFact() {
+  const id = getUrlFactId();
+  if (!id) return;
+  // Attendre que les cards soient rendues puis scroller
+  await new Promise(r => setTimeout(r, 300));
+  const el = document.getElementById('fact-' + id);
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    await incrementViews(id);
+  }
+}
+
+
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
@@ -867,6 +974,7 @@ function setupRealtime() {
   await fetchFacts();
   showRandomFact();
   setupRealtime();
+  await handleUrlFact();
 })();
 </script>
 </body>
