@@ -675,15 +675,23 @@ async function fetchFacts() {
     return;
   }
   try {
-    const { data, error } = await db.from('facts').select('*').order('votes', { ascending: false });
+    // Timeout 8s — si Supabase ne répond pas, on tombe sur le fallback
+    const timeout = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('timeout')), 8000)
+    );
+    const query = db.from('facts').select('*').order('votes', { ascending: false });
+    const { data, error } = await Promise.race([query, timeout]);
     if (error) throw error;
     allFacts = data;
     applySort();
     updateUI();
   } catch(e) {
-    console.error(e);
-    showToast('Erreur de connexion à la base de données.', 'error');
-    document.getElementById('factsGrid').innerHTML = '<div class="empty-state">Impossible de charger les facts. Vérife ta connexion.</div>';
+    console.warn('Supabase indisponible, affichage des facts par défaut.', e);
+    // Fallback : afficher les facts de base plutôt qu'un écran vide
+    allFacts = [...SEED_FACTS];
+    applySort();
+    updateUI();
+    showToast('⚠️ Connexion Supabase impossible — affichage local', 'info');
   }
 }
 
@@ -705,7 +713,6 @@ async function insertFact(fact) {
 
 async function incrementViews(factId) {
   if (!IS_CONFIGURED) return;
-  // Anti-spam : on ne compte qu'une vue par fact par session
   const seen = JSON.parse(sessionStorage.getItem('psViewed') || '[]');
   if (seen.includes(factId)) return;
   seen.push(factId);
@@ -717,9 +724,8 @@ async function incrementViews(factId) {
   f.views = newViews;
 }
 
-
+async function castVoteDb(factId, direction) {
   if (!IS_CONFIGURED) {
-    // Mode local
     const f = allFacts.find(x => x.id === factId);
     if (!f) return;
     const prev = userVotes[factId];
@@ -937,6 +943,7 @@ async function handleUrlFact() {
 }
 
 
+function escHtml(s='') {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
