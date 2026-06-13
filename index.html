@@ -712,17 +712,13 @@ async function insertFact(fact) {
 }
 
 async function incrementViews(factId) {
-  if (!IS_CONFIGURED) {
-    const f = allFacts.find(x => x.id === factId);
-    if (f) { f.views = (f.views || 0) + 1; renderFacts(); }
-    return;
-  }
   const f = allFacts.find(x => x.id === factId);
   if (!f) return;
-  const newViews = (f.views || 0) + 1;
-  f.views = newViews;
-  renderFacts(); // mise à jour immédiate du compteur
-  await db.from('facts').update({ views: newViews }).eq('id', factId).catch(console.warn);
+  f.views = (f.views || 0) + 1;
+  renderFacts();
+  if (!IS_CONFIGURED) return;
+  const { error } = await db.rpc('increment_views', { fact_id: factId });
+  if (error) console.error('Erreur increment_views:', error);
 }
 
 async function castVoteDb(factId, direction) {
