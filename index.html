@@ -712,16 +712,17 @@ async function insertFact(fact) {
 }
 
 async function incrementViews(factId) {
-  if (!IS_CONFIGURED) return;
-  const seen = JSON.parse(sessionStorage.getItem('psViewed') || '[]');
-  if (seen.includes(factId)) return;
-  seen.push(factId);
-  sessionStorage.setItem('psViewed', JSON.stringify(seen));
+  if (!IS_CONFIGURED) {
+    const f = allFacts.find(x => x.id === factId);
+    if (f) { f.views = (f.views || 0) + 1; renderFacts(); }
+    return;
+  }
   const f = allFacts.find(x => x.id === factId);
   if (!f) return;
   const newViews = (f.views || 0) + 1;
-  await db.from('facts').update({ views: newViews }).eq('id', factId);
   f.views = newViews;
+  renderFacts(); // mise à jour immédiate du compteur
+  await db.from('facts').update({ views: newViews }).eq('id', factId).catch(console.warn);
 }
 
 async function castVoteDb(factId, direction) {
@@ -828,7 +829,7 @@ function factCardHtml(f, delay=0, highlighted=false) {
             </svg>
             Copier le lien
           </button>
-          <a class="action-btn twitter" href="https://x.com/intent/tweet?text=${tweet}" target="_blank" rel="noopener" title="Partager sur X">
+          <a class="action-btn twitter" href="https://x.com/intent/tweet?text=${tweet}" target="_blank" rel="noopener" title="Partager sur X" onclick="incrementViews(${f.id})">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
               <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
             </svg>
@@ -836,9 +837,9 @@ function factCardHtml(f, delay=0, highlighted=false) {
           </a>
           <span class="views-badge">
             <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/>
             </svg>
-            ${fmtViews(views)} vue${views!==1?'s':''}
+            ${fmtViews(views)} partage${views!==1?'s':''}
           </span>
         </div>
       </div>
@@ -913,7 +914,6 @@ function copyFactLink(id, url) {
   navigator.clipboard.writeText(url).then(() => {
     showToast('🔗 Lien copié !', 'success');
   }).catch(() => {
-    // Fallback pour navigateurs sans clipboard API
     const el = document.createElement('textarea');
     el.value = url;
     document.body.appendChild(el);
@@ -922,6 +922,7 @@ function copyFactLink(id, url) {
     document.body.removeChild(el);
     showToast('🔗 Lien copié !', 'success');
   });
+  incrementViews(id);
 }
 
 function getUrlFactId() {
@@ -981,7 +982,6 @@ function setupRealtime() {
   await fetchFacts();
   showRandomFact();
   setupRealtime();
-  await handleUrlFact();
 })();
 </script>
 </body>
