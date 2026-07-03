@@ -46,8 +46,7 @@
     .nav-links{display:flex;gap:1.5rem;list-style:none}
     .nav-links a{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.85rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s}
     .nav-links a:hover{color:var(--yellow)}
-    .nav-admin-btn{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.75rem;letter-spacing:.1em;text-transform:uppercase;background:none;border:1px solid var(--border);border-radius:5px;color:var(--muted);padding:4px 10px;cursor:pointer;transition:all .2s}
-    .nav-admin-btn:hover{border-color:var(--red);color:var(--red)}
+
 
     /* ── MAIN ── */
     main{max-width:1200px;margin:0 auto;padding:3rem 1.5rem}
@@ -93,9 +92,6 @@
     .action-btn.insta:hover{border-color:#e1306c;color:#e1306c}
     .action-btn svg{flex-shrink:0}
     .views-badge{display:inline-flex;align-items:center;gap:.3rem;font-family:'Barlow Condensed',sans-serif;font-size:.72rem;color:var(--muted);margin-left:auto}
-    .delete-btn{display:none;background:rgba(255,59,92,.12);border:1px solid rgba(255,59,92,.35);border-radius:5px;color:var(--red);font-family:'Barlow Condensed',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;cursor:pointer;transition:all .18s;align-items:center;gap:.3rem}
-    .delete-btn:hover{background:rgba(255,59,92,.25);border-color:var(--red)}
-    body.admin-mode .delete-btn{display:inline-flex}
     .vote-panel{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:.8rem 1rem;border-left:1px solid var(--border);min-width:68px}
     .vote-btn{background:none;border:1px solid var(--border);border-radius:6px;width:34px;height:34px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1rem;transition:all .15s;color:var(--muted)}
     .vote-btn:hover{background:var(--border);color:white}
@@ -141,22 +137,7 @@
     .img-close-btn{background:var(--dark);color:var(--muted);border:1px solid var(--border);border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.85rem;letter-spacing:.1em;text-transform:uppercase;padding:.7rem 1.2rem;cursor:pointer;transition:all .2s}
     .img-close-btn:hover{border-color:var(--yellow);color:var(--yellow)}
 
-    /* ── ADMIN MODAL ── */
-    #adminModal{display:none;position:fixed;inset:0;z-index:600;background:rgba(0,0,0,.92);backdrop-filter:blur(8px);align-items:center;justify-content:center}
-    #adminModal.open{display:flex}
-    .admin-modal-box{background:var(--card);border:2px solid var(--red);border-radius:14px;padding:2rem;width:90%;max-width:380px;text-align:center}
-    .admin-modal-box h3{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--red);letter-spacing:.05em;margin-bottom:.3rem}
-    .admin-modal-box p{font-family:'Barlow Condensed',sans-serif;color:var(--muted);font-size:.85rem;margin-bottom:1.2rem;letter-spacing:.08em}
-    .admin-pwd-input{width:100%;background:var(--dark);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Barlow',sans-serif;font-size:1rem;padding:.7rem 1rem;outline:none;text-align:center;letter-spacing:.2em;margin-bottom:.8rem;transition:border-color .2s}
-    .admin-pwd-input:focus{border-color:var(--red)}
-    .admin-login-btn{background:var(--red);color:white;border:none;border-radius:8px;font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:.08em;padding:.7rem 2rem;cursor:pointer;width:100%;transition:opacity .2s}
-    .admin-login-btn:hover{opacity:.85}
-    .admin-err{font-family:'Barlow Condensed',sans-serif;font-size:.82rem;color:var(--red);margin-top:.5rem;min-height:1.2em}
-    #adminBar{display:none;position:fixed;bottom:1.2rem;left:50%;transform:translateX(-50%);z-index:400;background:rgba(200,30,50,.96);color:white;border-radius:30px;padding:.5rem 1.4rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.82rem;letter-spacing:.12em;text-transform:uppercase;align-items:center;gap:1rem;box-shadow:0 4px 24px rgba(255,59,92,.5)}
-    #adminBar.show{display:flex}
-    .admin-logout-btn{background:rgba(255,255,255,.2);border:none;border-radius:20px;color:white;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;padding:3px 14px;cursor:pointer;transition:background .2s}
-    .admin-logout-btn:hover{background:rgba(255,255,255,.35)}
-
+    
     /* ── TOAST ── */
     .toast{position:fixed;bottom:2rem;right:2rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.9rem;letter-spacing:.08em;text-transform:uppercase;padding:.8rem 1.4rem;border-radius:8px;box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:999;transform:translateY(100px);opacity:0;transition:all .3s}
     .toast.show{transform:translateY(0);opacity:1}
@@ -211,7 +192,6 @@
   <ul class="nav-links">
     <li><a href="#facts">Les Facts</a></li>
     <li><a href="#submit">Proposer</a></li>
-    <li><button class="nav-admin-btn" onclick="openAdminModal()">🔐</button></li>
   </ul>
 </nav>
 
@@ -298,23 +278,6 @@
   </div>
 </div>
 
-<!-- ADMIN MODAL -->
-<div id="adminModal" onclick="if(event.target===this)closeAdminModal()">
-  <div class="admin-modal-box">
-    <h3>🔐 Admin</h3>
-    <p>Accès réservé au modérateur</p>
-    <input type="password" class="admin-pwd-input" id="adminPwdInput" placeholder="••••••••" onkeydown="if(event.key==='Enter')checkAdminPwd()"/>
-    <button class="admin-login-btn" onclick="checkAdminPwd()">CONNEXION</button>
-    <div class="admin-err" id="adminErr"></div>
-  </div>
-</div>
-
-<!-- ADMIN BAR -->
-<div id="adminBar">
-  🛡️ Mode Admin actif
-  <button class="admin-logout-btn" onclick="logoutAdmin()">Déconnexion</button>
-</div>
-
 <div class="toast" id="toast"></div>
 
 <script>
@@ -323,7 +286,6 @@
 // ════════════════════════════════════════════
 const SUPABASE_URL   = 'https://wpbfnohaklqpjktiibzj.supabase.co/';
 const SUPABASE_KEY   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndwYmZub2hha2xxcGprdGlpYnpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwNzc1NDQsImV4cCI6MjA5MzY1MzU0NH0.1AxBYmPjfXZk5CFYxZDuO89tIjk6sk4fwNH7DBZM_MU';
-const ADMIN_PASSWORD = 'paulSeixas2025'; // 🔑 Change-le !
 const ANTHROPIC_KEY  = '';               // 🤖 Clé API Anthropic (optionnel)
 
 const IS_CONFIGURED = !SUPABASE_URL.startsWith('REMPLACE');
@@ -363,7 +325,6 @@ let allFacts       = [];
 let displayedFacts = [];
 let userVotes      = JSON.parse(localStorage.getItem('psVotes') || '{}');
 let sortMode       = 'top';
-let isAdminMode    = false;
 let currentImgFactId = null;
 
 // ════════════════════════════════════════════
@@ -424,17 +385,6 @@ async function incrementViews(factId) {
   if (!IS_CONFIGURED) return;
   const { error } = await db.rpc('increment_views', { fact_id: factId });
   if (error) console.error('Views error:', error);
-}
-
-async function deleteFact(factId) {
-  if (!isAdminMode) return;
-  if (!confirm('Supprimer ce fact définitivement ?')) return;
-  allFacts = allFacts.filter(f => f.id !== factId);
-  applySort(); updateUI();
-  if (!IS_CONFIGURED) return;
-  const { error } = await db.from('facts').delete().eq('id', factId);
-  if (error) { console.error('Delete error:', error); showToast('Erreur lors de la suppression', 'error'); }
-  else showToast('🗑️ Fact supprimé', 'success');
 }
 
 function setupRealtime() {
@@ -508,7 +458,6 @@ function factCardHtml(f, delay, highlighted) {
           + '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>'
           + 'Carte'
         + '</button>'
-        + '<button class="delete-btn" onclick="deleteFact(' + f.id + ')">🗑️ Supprimer</button>'
         + '<span class="views-badge">'
           + '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>'
           + fmtNum(views) + ' partage' + (views!==1?'s':'')
@@ -762,42 +711,6 @@ function downloadFactImage() {
   link.download = 'paulSeixasFact-' + (currentImgFactId||'') + '.png';
   link.href = canvas.toDataURL('image/png');
   link.click();
-}
-
-// ════════════════════════════════════════════
-//  ADMIN
-// ════════════════════════════════════════════
-function openAdminModal() {
-  document.getElementById('adminModal').classList.add('open');
-  setTimeout(() => document.getElementById('adminPwdInput').focus(), 100);
-}
-
-function closeAdminModal() {
-  document.getElementById('adminModal').classList.remove('open');
-  document.getElementById('adminPwdInput').value = '';
-  document.getElementById('adminErr').textContent = '';
-}
-
-function checkAdminPwd() {
-  const val = document.getElementById('adminPwdInput').value;
-  if (val === ADMIN_PASSWORD) {
-    isAdminMode = true;
-    document.body.classList.add('admin-mode');
-    document.getElementById('adminBar').classList.add('show');
-    closeAdminModal();
-    showToast('🛡️ Mode admin activé', 'success');
-  } else {
-    document.getElementById('adminErr').textContent = 'Mot de passe incorrect';
-    document.getElementById('adminPwdInput').value = '';
-    document.getElementById('adminPwdInput').focus();
-  }
-}
-
-function logoutAdmin() {
-  isAdminMode = false;
-  document.body.classList.remove('admin-mode');
-  document.getElementById('adminBar').classList.remove('show');
-  showToast('Déconnecté du mode admin', 'info');
 }
 
 // ════════════════════════════════════════════
